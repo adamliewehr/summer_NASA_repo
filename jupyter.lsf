@@ -1,0 +1,21 @@
+#!/bin/bash
+#BSUB -J jupyter_server
+#BSUB -o jupyter.out
+#BSUB -e jupyter.err
+#BSUB -W 02:00
+#BSUB -q normal
+#BSUB -n 1
+#BSUB -R "rusage[mem=8000]"
+
+# 1. Load Conda and activate your environment
+source $HOME/miniconda3/etc/profile.d/conda.sh
+conda activate cropTest
+
+# 2. Print the node name so you know where to build the tunnel
+echo "========================================="
+echo "TUNNEL TO THIS NODE:"
+hostname
+echo "========================================="
+
+# 3. Start the Jupyter server
+jupyter lab --no-browser --port=8425 --ip=0.0.0.0

@@ -1,0 +1,19 @@
+# Ignore massive data files
+*.nc
+*.hdf
+*.npz
+*.png
+
+# Ignore data directories
+GOES_Data/
+cloudsat/
+cropTestOutput/
+testData/
+
+# Ignore Python cache
+__pycache__/
+.ipynb_checkpoints/
+
+# Ignore HPC log files
+*.out
+*.err

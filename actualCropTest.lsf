@@ -1,0 +1,20 @@
+#!/bin/bash
+#BSUB -J actualCropTest # Name of the job
+#BSUB -o actualCropTest.out       # Where standard print statements go
+#BSUB -e actualCropTest.err       # Where errors are saved
+#BSUB -W 00:30                # Allow up to 30 minutes to run
+#BSUB -q normal               # Submit to the normal queue
+#BSUB -n 4                    # CPU cores needed (1 is plenty for a download)
+#BSUB -R "rusage[mem=5000]"   # Request roughly 2GB of memory
+
+# 1. Initialize and activate your Conda environment
+source $HOME/miniconda3/etc/profile.d/conda.sh
+conda activate cropTest    # 
+
+# 2. Set your specific project folder and navigate to it
+project_dir="$HOME/NASA/cropTest/"
+cd $project_dir
+
+# 3. Run the Python script
+python crop_abi_multitemporal.py 2020 0
+

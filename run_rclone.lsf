@@ -1,0 +1,16 @@
+#!/bin/bash
+#BSUB -J rclone_dl            # Name of the job
+#BSUB -o rclone_dl.out        # Where standard print statements go
+#BSUB -e rclone_dl.err        # Where errors are saved
+#BSUB -W 04:00                # 4 hours
+#BSUB -q normal               # Submit to the normal queue
+#BSUB -n 1                    # CPU cores needed
+#BSUB -R "rusage[mem=8000]"   # 8GB of memory
+
+# 1. Initialize and activate your Conda environment (where you installed rclone)
+source $HOME/miniconda3/etc/profile.d/conda.sh
+conda activate cropTest
+
+# 2. Run the rclone download
+# (It will automatically create the GOES_Data folder for you)
+rclone copy gdrive: $HOME/NASA/cropTest/GOES_Data/ --drive-root-folder-id=1QidHR_7gO1dJo2UDraLA1ipSHskK-rCg -v

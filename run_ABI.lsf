@@ -1,0 +1,19 @@
+#!/bin/bash
+#BSUB -J gdown_ABI       # Name of the job
+#BSUB -o gdown_ABI.out   # Where standard print statements go
+#BSUB -e gdown_ABI.err   # Where errors are saved
+#BSUB -W 04:00                # Allow up to 4 hours 
+#BSUB -q normal               # Submit to the normal queue
+#BSUB -n 1                    # CPU cores needed
+#BSUB -R "rusage[mem=8000]"   # Request roughly 8GB of memory
+
+# 1. Initialize and activate your Conda environment
+source $HOME/miniconda3/etc/profile.d/conda.sh
+conda activate cropTest       
+
+# 2. Set your specific project folder and navigate to it
+project_dir="$HOME/NASA/cropTest"
+cd $project_dir
+
+# 3. Run the Python script
+python gdownABI.py

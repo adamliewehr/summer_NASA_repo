@@ -53,46 +53,43 @@ def verify_latest():
         print(f"Mask Min: {mask.min()}, Max: {mask.max()}, Unique values: {np.unique(mask)}")
         if mask.max() == 0:
             print("WARNING: Cloud mask is empty (all zeros). Checking height units...")
-# Generate Diagnostic Plot
-plt.switch_backend('Agg')
 
-fig = plt.figure(figsize=(25, 12))
+    # Generate Diagnostic Plot
+    plt.switch_backend('Agg')
+    fig = plt.figure(figsize=(25, 12))
 
-# Calculate global vmin/vmax for Band 14 (IR)
-band_idx = 13 # Channel 14
-v_min = np.nanmin(chip[:, :, :, band_idx])
-v_max = np.nanmax(chip[:, :, :, band_idx])
+    # Calculate global vmin/vmax for Band 14 (IR)
+    band_idx = 13 # Channel 14
+    v_min = np.nanmin(chip[:, :, :, band_idx])
+    v_max = np.nanmax(chip[:, :, :, band_idx])
+    print(f"IR Band Stats - Min: {v_min:.2f}, Max: {v_max:.2f}")
 
-print(f"IR Band Stats - Min: {v_min:.2f}, Max: {v_max:.2f}")
+    # Plot 1: Temporal Sequence (Fixed Scale)
+    n_steps = chip.shape[0]
+    for i in range(n_steps):
+        ax = fig.add_subplot(3, n_steps, i + 1)
+        ax.imshow(chip[i, :, :, band_idx], cmap='gray', vmin=v_min, vmax=v_max)
+        offset = meta['ABI_offsets_minutes'][i] if 'ABI_offsets_minutes' in meta else i
+        ax.set_title(f"T={offset}m")
+        ax.axis('off')
 
-# Plot 1: Temporal Sequence (Fixed Scale)
-n_steps = chip.shape[0]
-for i in range(n_steps):
-    ax = fig.add_subplot(3, n_steps, i + 1)
-    ax.imshow(chip[i, :, :, band_idx], cmap='gray', vmin=v_min, vmax=v_max)
-    offset = meta['ABI_offsets_minutes'][i] if 'ABI_offsets_minutes' in meta else i
-    ax.set_title(f"T={offset}m")
-    ax.axis('off')
+    # Plot 2: Difference from Central Timestep (T=0)
+    center_idx = 0
+    if 'ABI_offsets_minutes' in meta:
+        offsets = list(meta['ABI_offsets_minutes'])
+        if 0 in offsets:
+            center_idx = offsets.index(0)
+    
+    for i in range(n_steps):
+        ax = fig.add_subplot(3, n_steps, n_steps + i + 1)
+        diff = chip[i, :, :, band_idx] - chip[center_idx, :, :, band_idx]
+        d_limit = max(abs(np.nanmin(diff)), abs(np.nanmax(diff)))
+        ax.imshow(diff, cmap='RdBu_r', vmin=-d_limit, vmax=d_limit)
+        ax.set_title(f"Diff (T{meta['ABI_offsets_minutes'][i]} - T0)")
+        ax.axis('off')
 
-# Plot 2: Difference from Central Timestep (T=0)
-# Find the index of the 0 offset
-center_idx = 0
-if 'ABI_offsets_minutes' in meta:
-    offsets = list(meta['ABI_offsets_minutes'])
-    if 0 in offsets:
-        center_idx = offsets.index(0)
-
-for i in range(n_steps):
-    ax = fig.add_subplot(3, n_steps, n_steps + i + 1)
-    diff = chip[i, :, :, band_idx] - chip[center_idx, :, :, band_idx]
-    d_limit = max(abs(np.nanmin(diff)), abs(np.nanmax(diff)))
-    ax.imshow(diff, cmap='RdBu_r', vmin=-d_limit, vmax=d_limit)
-    ax.set_title(f"Diff (T{meta['ABI_offsets_minutes'][i]} - T0)")
-    ax.axis('off')
-
-# Plot 3: CloudSat Profile
-ax_cs = fig.add_subplot(3, 1, 3)
-
+    # Plot 3: CloudSat Profile
+    ax_cs = fig.add_subplot(3, 1, 3)
     if 'Cloud_mask' in meta:
         mask = meta['Cloud_mask']
         im = ax_cs.imshow(mask.T, origin='lower', aspect='auto', cmap='tab10')

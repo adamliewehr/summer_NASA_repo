@@ -512,8 +512,8 @@ def processFile(yy, ddn, orbit, latb):
 
     N = len(cs_clb)
 
-    cs_clb_2 = np.floor(2 * cs_clb).astype(int)
-    cs_clt_2 = np.floor(2 * cs_clt).astype(int)
+    cs_clb_2 = np.floor(cs_clb / 500).astype(int)
+    cs_clt_2 = np.floor(cs_clt / 500).astype(int)
 
     cloud_class_mask_40_level = np.zeros((N, 40), dtype=np.int8)
 
@@ -523,16 +523,22 @@ def processFile(yy, ddn, orbit, latb):
                 break
             start_idx = cs_clb_2[i, j]
             end_idx = cs_clt_2[i, j] + 1
+            
+            # Clip indices to 0-39 range
+            start_idx = max(0, min(39, start_idx))
+            end_idx = max(0, min(40, end_idx))
+            
             cloud_type = cs_cltype[i, j]
-            cloud_class_mask_40_level[i, start_idx:end_idx] = cloud_type
+            if start_idx < end_idx:
+                cloud_class_mask_40_level[i, start_idx:end_idx] = cloud_type
 
     i = 0
 
     while i < N:
         try:
-            # Calculate track angle for vertical alignment
-            idx_start = max(0, i - 5)
-            idx_end = min(N - 1, i + 5)
+            # Calculate track angle for vertical alignment (using larger window for stability)
+            idx_start = max(0, i - 50)
+            idx_end = min(N - 1, i + 50)
             try:
                 coord_start = find_abi_coords(Latitude[idx_start], Longitude[idx_start])
                 coord_end = find_abi_coords(Latitude[idx_end], Longitude[idx_end])

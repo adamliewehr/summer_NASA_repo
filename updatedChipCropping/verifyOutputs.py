@@ -52,7 +52,7 @@ def verify_latest():
         print(f"\n--- Cloud Mask Check ---")
         print(f"Mask Min: {mask.min()}, Max: {mask.max()}, Unique values: {np.unique(mask)}")
         if mask.max() == 0:
-            print("WARNING: Cloud mask is empty (all zeros). Checking height units...")
+            print("WARNING: Cloud mask is empty (all zeros).")
 
     # Generate Diagnostic Plot
     plt.switch_backend('Agg')
@@ -60,15 +60,20 @@ def verify_latest():
 
     # Calculate global vmin/vmax for Band 14 (IR)
     band_idx = 13 # Channel 14
-    v_min = np.nanmin(chip[:, :, :, band_idx])
-    v_max = np.nanmax(chip[:, :, :, band_idx])
-    print(f"IR Band Stats - Min: {v_min:.2f}, Max: {v_max:.2f}")
+    # Use percentiles for better contrast with raw 12-bit data
+    v_min = np.nanpercentile(chip[..., band_idx], 2)
+    v_max = np.nanpercentile(chip[..., band_idx], 98)
+    print(f"IR Band Stats (2nd/98th percentile) - Min: {v_min:.2f}, Max: {v_max:.2f}")
 
     # Plot 1: Temporal Sequence (Fixed Scale)
     n_steps = chip.shape[0]
+    center_col = chip.shape[2] // 2
+
     for i in range(n_steps):
         ax = fig.add_subplot(3, n_steps, i + 1)
         ax.imshow(chip[i, :, :, band_idx], cmap='gray', vmin=v_min, vmax=v_max)
+        ax.axvline(x=center_col, color='red', linestyle='--', alpha=0.5, linewidth=1)
+        
         offset = meta['ABI_offsets_minutes'][i] if 'ABI_offsets_minutes' in meta else i
         ax.set_title(f"T={offset}m")
         ax.axis('off')
@@ -82,9 +87,10 @@ def verify_latest():
     
     for i in range(n_steps):
         ax = fig.add_subplot(3, n_steps, n_steps + i + 1)
-        diff = chip[i, :, :, band_idx] - chip[center_idx, :, :, band_idx]
-        d_limit = max(abs(np.nanmin(diff)), abs(np.nanmax(diff)))
+        diff = chip[i, :, :, band_idx].astype(np.float32) - chip[center_idx, :, :, band_idx].astype(np.float32)
+        d_limit = np.nanpercentile(np.abs(diff), 99)
         ax.imshow(diff, cmap='RdBu_r', vmin=-d_limit, vmax=d_limit)
+        ax.axvline(x=center_col, color='black', linestyle=':', alpha=0.3, linewidth=1)
         ax.set_title(f"Diff (T{meta['ABI_offsets_minutes'][i]} - T0)")
         ax.axis('off')
 
@@ -96,7 +102,7 @@ def verify_latest():
         plt.colorbar(im, ax=ax_cs, label='Cloud Type')
         ax_cs.set_title("CloudSat Vertical Profile (Cloud Types)")
         ax_cs.set_xlabel("Along-track Profile Index")
-        ax_cs.set_ylabel("Level (0-40)")
+        ax_cs.set_ylabel("Level (0-500m bins)")
     else:
         ax_cs.text(0.5, 0.5, "No Cloud_mask found in metadata", ha='center')
 

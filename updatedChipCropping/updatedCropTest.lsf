@@ -2,7 +2,7 @@
 #BSUB -J updatedCropTest # Name of the job
 #BSUB -o updatedCropTest.out       # Where standard print statements go
 #BSUB -e updatedCropTest.err       # Where errors are saved
-#BSUB -W 01:30                # Allow up to 30 minutes to run
+#BSUB -W 02:30                # Allow up to 30 minutes to run
 #BSUB -q normal               # Submit to the normal queue
 #BSUB -n 8                    # CPU cores needed (1 is plenty for a download)
 #BSUB -R "rusage[mem=8000]"   # Request roughly 2GB of memory

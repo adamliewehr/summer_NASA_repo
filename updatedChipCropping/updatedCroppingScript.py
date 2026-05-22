@@ -25,7 +25,8 @@ CLOUDSATPATH = '/home/al8425b-hpc/NASA/cropTest/testData/cloudsat/'
 ROOT_DIR = '/home/al8425b-hpc/NASA/cropTest/testData/cloudsat/2B-CLDCLASS-LIDAR'
 # ABIDATA = "./data/GOES-16-ABI-L1B-FULLD/" #"/css/geostationary/BackStage/GOES-16-ABI-L1B-FULLD/"
 ABIDATA = "/home/al8425b-hpc/NASA/cropTest/testData/GOES_Data/" #"/css/geostationary/BackStage/GOES-16-ABI-L1B-FULLD/"
-SAVEDIR = '/home/al8425b-hpc/NASA/cropTest/testData/updatedOutput/'
+SAVEDIR = '/home/al8425b-hpc/NASA/cropTest/testData/updatedOutput/' 
+
 
 # Multi-timestep configuration
 OFFSETS_MINUTES = [-60, -40, -20, 0, 20, 40, 60]   # every 20 min centered on CloudSat time
@@ -512,6 +513,7 @@ def processFile(yy, ddn, orbit, latb):
 
     N = len(cs_clb)
 
+    # Convert meters to 500m bins (40 levels = 20km)
     cs_clb_2 = np.floor(cs_clb / 500).astype(int)
     cs_clt_2 = np.floor(cs_clt / 500).astype(int)
 
@@ -532,13 +534,16 @@ def processFile(yy, ddn, orbit, latb):
             if start_idx < end_idx:
                 cloud_class_mask_40_level[i, start_idx:end_idx] = cloud_type
 
-    i = 0
+    # To span the full 512-pixel height (1024km), we need ~930 CloudSat profiles
+    # (1024km / 1.1km per profile)
+    half_p = 465 
+    i = half_p
 
-    while i < N:
+    while i < N - half_p:
         try:
             # Calculate track angle for vertical alignment (using larger window for stability)
-            idx_start = max(0, i - 50)
-            idx_end = min(N - 1, i + 50)
+            idx_start = max(0, i - 100)
+            idx_end = min(N - 1, i + 100)
             try:
                 coord_start = find_abi_coords(Latitude[idx_start], Longitude[idx_start])
                 coord_end = find_abi_coords(Latitude[idx_end], Longitude[idx_end])
@@ -548,17 +553,6 @@ def processFile(yy, ddn, orbit, latb):
             except Exception:
                 track_angle = 0.0
 
-            print(
-                UTC_Time[i],
-                yy,
-                ddn,
-                Latitude[i],
-                Longitude[i],
-                ABIDATA,
-                OFFSETS_MINUTES,
-                ALLOW_MISSING_TIMESTEPS,
-                "Track Angle:", track_angle
-            )
             chip_stack, coords, chip_times, abi_valid_mask = processTimeSeries(
                 UTC_Time[i],
                 yy,
@@ -570,27 +564,12 @@ def processFile(yy, ddn, orbit, latb):
                 allow_missing=ALLOW_MISSING_TIMESTEPS,
                 angle=track_angle
             )
-        except ValueError as e:
-            print(e)
-            i += 20
-            continue
-        except ImportError as e:
-            print(e)
-            i += 90
-            continue
-        except FileNotFoundError as e:
-            print(e)
-            i += 20
-            continue
         except Exception as e:
-            print(e)
-            i += 20
+            print(f"Error at profile {i}: {e}")
+            i += 100
             continue
 
-        if i + 46 >= N:
-            break
-
-        dRange = np.arange(i + 46, i - 45, -1)
+        dRange = np.arange(i + half_p, i - half_p, -1)
 
         print("Generating dictionary")
         aux_data = {
@@ -626,12 +605,13 @@ def processFile(yy, ddn, orbit, latb):
 
         np.savez(
             os.path.join(SAVEDIR, fileName),
-            chip=chip_stack,   # (T, 128, 128, 16)
+            chip=chip_stack,   # (T, 512, 512, 16)
             data=aux_data
         )
 
         print(fileName, UTC_Time[i], chip_stack.shape, flush=True)
-        i += 45
+        # Move forward by half a chip for 50% overlap
+        i += half_p
 
 
 # =================================
